@@ -1,89 +1,40 @@
 <!DOCTYPE html>
 <html lang="en">
-
 <head>
-    <meta charset="UTF-8">
-    <title>Event App</title>
-    <style>
-        body {
-            font-family: Arial;
-            max-width: 900px;
-            margin: 40px auto;
-            padding: 0 20px;
-        }
-
-        nav {
-            margin-bottom: 20px;
-        }
-
-        nav a {
-            margin-right: 15px;
-            text-decoration: none;
-            color: #333;
-        }
-
-        .success {
-            color: green;
-        }
-
-        .error {
-            color: red;
-        }
-
-        table {
-            width: 100%;
-            border-collapse: collapse;
-        }
-
-        th,
-        td {
-            padding: 10px;
-            border: 1px solid #ddd;
-            text-align: left;
-        }
-
-        input,
-        textarea,
-        select {
-            width: 100%;
-            padding: 8px;
-            margin: 5px 0 15px;
-            box-sizing: border-box;
-        }
-
-        button,
-        .btn {
-            padding: 8px 16px;
-            cursor: pointer;
-            background: #333;
-            color: white;
-            border: none;
-            text-decoration: none;
-        }
-    </style>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="csrf-token" content="{{ csrf_token() }}">
+  <title>Event App</title>
+  @vite(['resources/css/app.css', 'resources/js/app.js'])
 </head>
-
 <body>
-    <nav>
-        <a href="{{ route('events.index') }}">All Events</a>
-        @auth
-            <a href="{{ route('events.create') }}">+ New Event</a>
-            <a href="{{ route('dashboard') }}">Dashboard</a>
+  <div class="app-nav">
+    <div class="wrap">
+      <div class="app-nav-inner">
+        <a href="{{ route('events.index') }}" class="nav-brand">Event App</a>
+        <div class="nav-links">
+          @auth
+            <a href="{{ route('events.index') }}" class="btn btn-ghost btn-sm">Events</a>
+            <a href="{{ route('dashboard') }}" class="btn btn-ghost btn-sm">Dashboard</a>
             <form action="/logout" method="POST" style="display:inline">
-                @csrf
-                <button type="submit">Logout</button>
+              @csrf
+              <button type="submit" class="btn btn-outline btn-sm">Logout</button>
             </form>
-        @else
-            <a href="/login">Login</a>
-            <a href="/register">Register</a>
-        @endauth
-    </nav>
+          @else
+            <a href="/login"    class="btn btn-ghost btn-sm">Login</a>
+            <a href="/register" class="btn btn-default btn-sm">Register</a>
+          @endauth
+        </div>
+      </div>
+    </div>
+  </div>
 
+  <div class="wrap">
     @if (session('success'))
-        <p class="success">✅ {{ session('success') }}</p>
+      <div class="flash-ok">{{ session('success') }}</div>
     @endif
 
     @yield('content')
+  </div>
 </body>
-
 </html>

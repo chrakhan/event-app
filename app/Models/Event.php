@@ -10,15 +10,14 @@ class Event extends Model
     use HasFactory;
 
     protected $fillable = [
-        'title',
-        'description',
-        'user_id',
-        'location',
-        'event_date',
-        'status'
+        'title', 'description', 'user_id', 'location',
+        'event_date', 'status', 'color', 'start_time',
     ];
 
-    // Event belongs to a User
+    protected $casts = [
+        'event_date' => 'date',
+    ];
+
     public function user()
     {
         return $this->belongsTo(User::class);

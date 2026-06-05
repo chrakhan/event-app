@@ -8,105 +8,122 @@ use Illuminate\Support\Facades\Auth;
 
 class EventController extends Controller
 {
-    // Show all events
+    private function shape(Event $event): array
+    {
+        return [
+            'id'          => $event->id,
+            'title'       => $event->title,
+            'description' => $event->description,
+            'location'    => $event->location,
+            'date'        => $event->event_date->format('Y-m-d'),
+            'start_time'  => $event->start_time,
+            'status'      => $event->status,
+            'color'       => $event->color ?? 'blue',
+            'user_id'     => $event->user_id,
+            'user'        => ['name' => $event->user->name ?? 'Unknown'],
+        ];
+    }
+
     public function index()
     {
-        $events = Event::with('user')->latest()->get();
+        $events = Event::with('user')->latest('event_date')->get()->map(fn($e) => $this->shape($e));
         return view('events.index', compact('events'));
     }
 
-    // Show the create form
     public function create()
     {
         return view('events.create');
     }
 
-    // Save new event to database
     public function store(Request $request)
     {
-        $request->validate([
+        $data = $request->validate([
             'title'       => 'required|string|max:255',
-            'description' => 'required|string',
+            'description' => 'nullable|string',
             'location'    => 'required|string|max:255',
             'event_date'  => 'required|date',
+            'start_time'  => 'nullable|date_format:H:i,H:i:s',
             'status'      => 'required|in:active,cancelled,completed',
+            'color'       => 'nullable|in:blue,green,purple,orange,pink,red',
         ]);
 
-        Event::create([
-            'title'       => $request->title,
-            'description' => $request->description,
-            'location'    => $request->location,
-            'event_date'  => $request->event_date,
-            'status'      => $request->status,
-            'user_id'     => Auth::id(),
+        $event = Event::create([
+            ...$data,
+            'user_id' => Auth::id(),
+            'color'   => $data['color'] ?? 'blue',
         ]);
+        $event->load('user');
 
-        return redirect()->route('events.index')
-            ->with('success', 'Event created!');
+        if ($request->expectsJson()) {
+            return response()->json($this->shape($event), 201);
+        }
+
+        return redirect()->route('events.index')->with('success', 'Event created!');
     }
 
-    // Show one event
     public function show(Event $event)
     {
         return view('events.show', compact('event'));
     }
 
-    // Show edit form
     public function edit(Event $event)
     {
         /** @var \App\Models\User $user */
         $user = Auth::user();
-
         if ($user->id !== $event->user_id && !$user->hasRole('admin')) {
-            abort(403, 'Not allowed.');
+            abort(403);
         }
-
         return view('events.edit', compact('event'));
     }
 
-    // Save updated event
     public function update(Request $request, Event $event)
     {
         /** @var \App\Models\User $user */
         $user = Auth::user();
-
         if ($user->id !== $event->user_id && !$user->hasRole('admin')) {
-            abort(403, 'Not allowed.');
+            if ($request->expectsJson()) {
+                return response()->json(['message' => 'Not allowed.'], 403);
+            }
+            abort(403);
         }
 
-        $request->validate([
+        $data = $request->validate([
             'title'       => 'required|string|max:255',
-            'description' => 'required|string',
+            'description' => 'nullable|string',
             'location'    => 'required|string|max:255',
             'event_date'  => 'required|date',
+            'start_time'  => 'nullable|date_format:H:i,H:i:s',
             'status'      => 'required|in:active,cancelled,completed',
+            'color'       => 'nullable|in:blue,green,purple,orange,pink,red',
         ]);
 
-        $event->update($request->only([
-            'title',
-            'description',
-            'location',
-            'event_date',
-            'status'
-        ]));
+        $event->update($data);
+        $event->load('user');
 
-        return redirect()->route('events.index')
-            ->with('success', 'Event updated!');
+        if ($request->expectsJson()) {
+            return response()->json($this->shape($event));
+        }
+
+        return redirect()->route('events.index')->with('success', 'Event updated!');
     }
 
-    // Delete event
-    public function destroy(Event $event)
+    public function destroy(Request $request, Event $event)
     {
         /** @var \App\Models\User $user */
         $user = Auth::user();
-
         if ($user->id !== $event->user_id && !$user->hasRole('admin')) {
-            abort(403, 'Not allowed.');
+            if ($request->expectsJson()) {
+                return response()->json(['message' => 'Not allowed.'], 403);
+            }
+            abort(403);
         }
 
         $event->delete();
 
-        return redirect()->route('events.index')
-            ->with('success', 'Event deleted!');
+        if ($request->expectsJson()) {
+            return response()->json(['deleted' => true]);
+        }
+
+        return redirect()->route('events.index')->with('success', 'Event deleted!');
     }
 }
